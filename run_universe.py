@@ -24,7 +24,7 @@ def run_universe_job():
     if not os.path.exists(CSV_PATH):
         raise Exception(f"CSV file not found at {CSV_PATH}")
 
-    df = pd.read_csv(CSV_PATH).head(20)
+    df = pd.read_csv(CSV_PATH).head(5)
 
     symbols = [
         s if s.endswith(".NS") else f"{s}.NS"
@@ -57,6 +57,7 @@ def run_universe_job():
                     interval="1d",
                     progress=False,
                     threads=False
+                    timeout=10
                 )
 
                 if df_symbol is None or df_symbol.empty:
