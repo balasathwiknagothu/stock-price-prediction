@@ -1,20 +1,15 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import pickle
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import train_test_split
+import joblib
+from xgboost import XGBRegressor
+from sklearn.preprocessing import StandardScaler
 
 # -----------------------------
-# CONFIG
+# LOAD FULL STOCK UNIVERSE
 # -----------------------------
-TRAIN_SYMBOLS = [
-    "RELIANCE.NS","TCS.NS","INFY.NS","HDFCBANK.NS","ICICIBANK.NS",
-    "SBIN.NS","LT.NS","ITC.NS","HINDUNILVR.NS","AXISBANK.NS",
-    "KOTAKBANK.NS","BAJFINANCE.NS","ASIANPAINT.NS","MARUTI.NS",
-    "TITAN.NS","SUNPHARMA.NS","ULTRACEMCO.NS","WIPRO.NS",
-    "NTPC.NS","POWERGRID.NS","ONGC.NS","TECHM.NS",
-]
+df_universe = pd.read_csv("data/master/stocks_universe.csv")
+SYMBOLS = df_universe["symbol"].dropna().unique().tolist()
 
 PERIOD = "max"
 INTERVAL = "1d"
@@ -45,11 +40,9 @@ def create_features(df):
     df["volume_change"] = df["Volume"].pct_change()
     df["momentum"] = df["ma20"] - df["ma50"]
 
-    # Future 7-day return
-    df["future_return"] = df["Close"].pct_change(7).shift(-7)
-
-    # Volatility-adjusted target
-    df["target"] = df["future_return"] / (df["volatility"] + 1e-6)
+    df["y1"] = df["Close"].pct_change(1).shift(-1)
+    df["y3"] = df["Close"].pct_change(3).shift(-3)
+    df["y7"] = df["Close"].pct_change(7).shift(-7)
 
     df = df.dropna()
 
@@ -60,66 +53,111 @@ def create_features(df):
     ]
 
     X = df[features].copy()
-    y = df["target"].copy()
+    y1 = df["y1"]
+    y3 = df["y3"]
+    y7 = df["y7"]
 
-    # -----------------------------
-    # CLEANING STEP (CRITICAL FIX)
-    # -----------------------------
     X.replace([np.inf, -np.inf], np.nan, inplace=True)
-    y.replace([np.inf, -np.inf], np.nan, inplace=True)
-
     X = X.dropna()
-    y = y.loc[X.index]
 
-    # Clip extreme outliers
-    X = X.clip(lower=-10, upper=10)
-    y = y.clip(lower=-10, upper=10)
+    y1 = y1.loc[X.index]
+    y3 = y3.loc[X.index]
+    y7 = y7.loc[X.index]
 
-    return X, y
+    return X, y1, y3, y7
 
 # -----------------------------
-# DATA COLLECTION
+# COLLECT DATA
 # -----------------------------
-all_X = []
-all_y = []
+all_X, all_y1, all_y3, all_y7 = [], [], [], []
+processed = 0
 
-for symbol in TRAIN_SYMBOLS:
-    print(f"Downloading {symbol}...")
-    df = yf.download(symbol, period=PERIOD, interval=INTERVAL, progress=False)
+for symbol in SYMBOLS:
+    try:
+        print(f"Downloading: {symbol}")
+        df = yf.download(symbol, period=PERIOD, interval=INTERVAL, progress=False)
 
-    if len(df) < 200:
+        if df is None or df.empty or len(df) < 300:
+            continue
+
+        X, y1, y3, y7 = create_features(df)
+
+        if len(X) < 200:
+            continue
+
+        all_X.append(X)
+        all_y1.append(y1)
+        all_y3.append(y3)
+        all_y7.append(y7)
+
+        processed += 1
+
+    except Exception:
         continue
 
-    X, y = create_features(df)
-
-    if len(X) > 100:
-        all_X.append(X)
-        all_y.append(y)
+print("Processed symbols:", processed)
 
 X = pd.concat(all_X)
-y = pd.concat(all_y)
+y1 = pd.concat(all_y1)
+y3 = pd.concat(all_y3)
+y7 = pd.concat(all_y7)
 
 print("Total training samples:", len(X))
 
 # -----------------------------
-# TRAIN MODEL
+# SCALE FEATURES
 # -----------------------------
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, shuffle=False
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# -----------------------------
+# TRAIN MODELS
+# -----------------------------
+model_1d = XGBRegressor(
+    n_estimators=800,
+    learning_rate=0.03,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    tree_method="hist",
+    n_jobs=-1
 )
 
-model = GradientBoostingRegressor(
-    n_estimators=200,
-    learning_rate=0.05,
-    max_depth=3
+model_3d = XGBRegressor(
+    n_estimators=800,
+    learning_rate=0.03,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    tree_method="hist",
+    n_jobs=-1
 )
 
-model.fit(X_train, y_train)
+model_7d = XGBRegressor(
+    n_estimators=800,
+    learning_rate=0.03,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    tree_method="hist",
+    n_jobs=-1
+)
 
-print("Training complete.")
+print("Training 1D model...")
+model_1d.fit(X_scaled, y1)
 
-# Save model
-with open("model.pkl", "wb") as f:
-    pickle.dump(model, f)
+print("Training 3D model...")
+model_3d.fit(X_scaled, y3)
 
-print("Model saved as model.pkl")
+print("Training 7D model...")
+model_7d.fit(X_scaled, y7)
+
+# -----------------------------
+# SAVE MODELS
+# -----------------------------
+joblib.dump(model_1d, "model_1d.pkl")
+joblib.dump(model_3d, "model_3d.pkl")
+joblib.dump(model_7d, "model_7d.pkl")
+joblib.dump(scaler, "scaler.pkl")
+
+print("All models saved successfully.")

@@ -1,29 +1,34 @@
+import joblib
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import pickle
 
 # -----------------------------
-# LOAD MODEL
+# LOAD TRAINED MODELS
 # -----------------------------
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
+model_1d = joblib.load("model_1d.pkl")
+model_3d = joblib.load("model_3d.pkl")
+model_7d = joblib.load("model_7d.pkl")
+scaler = joblib.load("scaler.pkl")
+
 
 # -----------------------------
 # FEATURE ENGINEERING
+# (Must match train_model.py exactly)
 # -----------------------------
 def compute_rsi(series, period=14):
     delta = series.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
+
     avg_gain = gain.rolling(period).mean()
     avg_loss = loss.rolling(period).mean()
+
     rs = avg_gain / (avg_loss + 1e-9)
     return 100 - (100 / (1 + rs))
 
 
-def create_features(df):
-    df = df.copy()
+def compute_features(df):
 
     df["return_1d"] = df["Close"].pct_change(1)
     df["return_3d"] = df["Close"].pct_change(3)
@@ -41,52 +46,130 @@ def create_features(df):
     df = df.dropna()
 
     features = [
-        "return_1d","return_3d","return_7d",
-        "ma_ratio","volatility","rsi",
-        "volume_change","momentum"
+        "return_1d",
+        "return_3d",
+        "return_7d",
+        "ma_ratio",
+        "volatility",
+        "rsi",
+        "volume_change",
+        "momentum"
     ]
 
-    return df, df[features]
+    return df, features
 
 
 # -----------------------------
-# MAIN PREDICTION FUNCTION
+# SINGLE STOCK PREDICTION (kept for API)
 # -----------------------------
 def predict_stock(symbol):
 
     if not symbol.endswith(".NS"):
-        symbol = symbol + ".NS"
+        symbol += ".NS"
 
-    df = yf.download(symbol, period="1y", interval="1d", progress=False)
+    df = yf.download(
+        symbol,
+        period="1y",
+        interval="1d",
+        progress=False
+    )
 
-    if df.empty or len(df) < 100:
+    if df.empty:
         return None
 
-    # 🔥 FIX: Flatten multi-index columns if present
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-    df, X = create_features(df)
+    df, features = compute_features(df)
 
-    if len(X) == 0:
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.dropna(inplace=True)
+
+    if len(df) < 10:
         return None
 
-    latest_features = X.iloc[-1:].values
+    latest = df.iloc[-1]
+    X = pd.DataFrame([latest[features]])
 
-    predicted_vol_adj_return = float(model.predict(latest_features)[0])
+    if X.shape[1] != 8:
+        return None
 
-    latest_volatility = float(df["volatility"].iloc[-1])
-    current_price = float(df["Close"].iloc[-1])
+    X_scaled = scaler.transform(X.values)
 
-    predicted_return = predicted_vol_adj_return * latest_volatility
-    predicted_price = current_price * (1 + predicted_return)
+    current_price = float(latest["Close"])
 
-    pct_change = predicted_return * 100
-    direction = "UP" if pct_change >= 0 else "DOWN"
+    r1 = model_1d.predict(X_scaled)[0]
+    r3 = model_3d.predict(X_scaled)[0]
+    r7 = model_7d.predict(X_scaled)[0]
 
     return {
-        "current_price": round(current_price, 2),
-        "predicted_price": round(predicted_price, 2),
-        "pct_change": round(pct_change, 2),
-        "direction": direction
+        "symbol": symbol,
+        "current_price": current_price,
+        "predictions": {
+            "1D": {
+                "expected_return": float(r1),
+                "predicted_price": float(current_price * (1 + r1))
+            },
+            "3D": {
+                "expected_return": float(r3),
+                "predicted_price": float(current_price * (1 + r3))
+            },
+            "7D": {
+                "expected_return": float(r7),
+                "predicted_price": float(current_price * (1 + r7))
+            }
+        }
+    }
+
+
+# -----------------------------
+# BATCH PREDICTION (for universe job)
+# -----------------------------
+def predict_from_dataframe(symbol, df):
+
+    if df.empty:
+        return None
+
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    df, features = compute_features(df)
+
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.dropna(inplace=True)
+
+    if len(df) < 10:
+        return None
+
+    latest = df.iloc[-1]
+    X = pd.DataFrame([latest[features]])
+
+    if X.shape[1] != 8:
+        return None
+
+    X_scaled = scaler.transform(X.values)
+
+    current_price = float(latest["Close"])
+
+    r1 = model_1d.predict(X_scaled)[0]
+    r3 = model_3d.predict(X_scaled)[0]
+    r7 = model_7d.predict(X_scaled)[0]
+
+    return {
+        "symbol": symbol,
+        "current_price": current_price,
+        "predictions": {
+            "1D": {
+                "expected_return": float(r1),
+                "predicted_price": float(current_price * (1 + r1))
+            },
+            "3D": {
+                "expected_return": float(r3),
+                "predicted_price": float(current_price * (1 + r3))
+            },
+            "7D": {
+                "expected_return": float(r7),
+                "predicted_price": float(current_price * (1 + r7))
+            }
+        }
     }

@@ -182,10 +182,6 @@ document.addEventListener("click",e=>{
 });
 
 
-document.addEventListener("click",e=>{
-  if(!e.target.closest(".search-wrap")) results.style.display="none";
-});
-
 function stockCard(s){
   const c=document.createElement("div");
   c.className="card";
@@ -228,6 +224,7 @@ function renderSection(title,data){
 
 function openStock(symbol){
   results.style.display="none";
+
   const detail=document.getElementById("detail");
   detail.classList.add("show");
   document.getElementById("d-title").innerText=symbol;
@@ -244,39 +241,45 @@ function openStock(symbol){
   fetch(`/predict?symbol=${symbol}`)
   .then(r=>r.json())
   .then(d=>{
-    if(d.status==="done"){
-      renderPrediction(symbol,d);
-      return;
-    }
-
-    const interval=setInterval(()=>{
-      fetch(`/prediction-status?symbol=${symbol}`)
-      .then(r=>r.json())
-      .then(s=>{
-        if(s.status==="done"){
-          clearInterval(interval);
-          renderPrediction(symbol,s);
-        }
-      });
-    },2000);
+    renderPrediction(symbol,d);
   });
 }
 
+
 function renderPrediction(symbol,d){
-  const isUp=d.direction==="UP";
-  document.getElementById("d-body").innerHTML=`
-    <div style="padding:20px;background:rgba(255,255,255,0.05);border-radius:16px;">
-      <div>Current: ₹${d.current_price}</div>
-      <div style="font-size:22px;color:${isUp?'#7CFF7C':'#FF7C7C'}">
-        Predicted: ₹${d.predicted_price}
+
+  if(!d || d.status !== "done"){
+    document.getElementById("d-body").innerHTML = `
+      <div style="padding:30px;opacity:.7;text-align:center;">
+        Prediction failed
       </div>
-      <div>${d.pct_change}%</div>
+    `;
+    return;
+  }
+
+  const current = d.current_price;
+  const pred = d.predictions["1D"].predicted_price;
+
+  const change = ((pred - current) / current) * 100;
+  const isUp = change > 0;
+
+  document.getElementById("d-body").innerHTML = `
+    <div style="padding:20px;background:rgba(255,255,255,0.05);border-radius:16px;">
+      <div>Current: ₹${current.toFixed(2)}</div>
+
+      <div style="font-size:22px;color:${isUp?'#7CFF7C':'#FF7C7C'}">
+        Predicted (1D): ₹${pred.toFixed(2)}
+      </div>
+
+      <div>${change.toFixed(2)}%</div>
     </div>
   `;
-  loadChart(symbol,d);
+
+  loadChart(symbol);
 }
 
-function loadChart(symbol){
+
+function loadChart(symbol,data){
 
   const container = document.getElementById("tvChart");
   container.innerHTML = "";
@@ -296,7 +299,7 @@ function loadChart(symbol){
 
     setTimeout(() => {
 
-      const chart = LightweightCharts.createChart(container, {
+      chart = LightweightCharts.createChart(container, {
         width: container.clientWidth || 900,
         height: 420,
         layout: {
@@ -324,8 +327,12 @@ function loadChart(symbol){
       }));
 
       candleSeries.setData(formatted);
-
+      
       chart.timeScale().fitContent();
+
+      // 🔮 Future projection line
+      
+
 
       window.addEventListener("resize", () => {
         chart.applyOptions({
