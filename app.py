@@ -1,4 +1,3 @@
-from run_universe import run_universe
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -6,9 +5,10 @@ from config import Config
 from flask import Flask, render_template, jsonify, request
 import pandas as pd
 import yfinance as yf
-from scripts.predict_engine import predict_stock
 
+from scripts.predict_engine import predict_stock
 from models import db, Prediction, JobRun
+from run_universe import run_universe_job   # ✅ FIXED IMPORT
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -94,12 +94,6 @@ def predict():
         print("Prediction error:", e)
         return jsonify({"status": "failed"})
 
-    return jsonify({
-        "status": "done",
-        "current_price": result["current_price"],
-        "predictions": result["predictions"]
-    })
-
 
 def get_market_data(kind, limit=None):
     rows = Prediction.query.all()
@@ -139,12 +133,9 @@ def market_top(kind):
     return jsonify(rows)
 
 
-#HEALTH
 @app.route("/health")
 def health():
-    return {
-        "status": "OK"
-    }
+    return {"status": "OK"}
 
 
 @app.route("/last-job")
@@ -167,10 +158,11 @@ def last_job():
 @app.route("/run-universe")
 def trigger_universe():
     try:
-        run_universe_job()
+        run_universe_job()   # ✅ THIS NOW MATCHES
         return {"status": "Universe job executed"}
     except Exception as e:
         return {"error": str(e)}, 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
