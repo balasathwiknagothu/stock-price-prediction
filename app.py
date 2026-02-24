@@ -77,9 +77,20 @@ def history():
 def predict():
     symbol = request.args.get("symbol")
 
-    result = predict_stock(symbol)
-
-    if not result:
+    try:
+        result = predict_stock(symbol)
+    
+        if not result:
+            return jsonify({"status": "failed"})
+    
+        return jsonify({
+            "status": "done",
+            "current_price": result["current_price"],
+            "predictions": result["predictions"]
+        })
+    
+    except Exception as e:
+        print("Prediction error:", e)
         return jsonify({"status": "failed"})
 
     return jsonify({

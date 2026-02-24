@@ -67,12 +67,10 @@ def predict_stock(symbol):
     if not symbol.endswith(".NS"):
         symbol += ".NS"
 
-    df = yf.download(
-        symbol,
-        period="1y",
-        interval="1d",
-        progress=False
-    )
+    try:
+        df = yf.download(symbol, period="1y", interval="1d", progress=False)
+    except Exception:
+        return None
 
     if df.empty:
         return None
