@@ -54,6 +54,9 @@ def run_universe_job():
         logging.info("Starting sequential downloads...")
 
         for symbol in symbols:
+            logging.info(f"STARTING: {symbol}")
+            print(f"STARTING: {symbol}")
+        
             try:
                 df_symbol = yf.download(
                     symbol,
@@ -62,21 +65,21 @@ def run_universe_job():
                     progress=False,
                     threads=False
                 )
-
+        
                 if df_symbol is None or df_symbol.empty:
-                    logging.warning(f"No data for {symbol}")
+                    logging.warning(f"NO DATA: {symbol}")
                     failed_symbols.append(symbol)
                     continue
-
+                
                 result = predict_from_dataframe(symbol, df_symbol)
-
+        
                 if not result:
-                    logging.warning(f"Prediction failed for {symbol}")
+                    logging.warning(f"PREDICTION FAILED: {symbol}")
                     failed_symbols.append(symbol)
                     continue
-
+                
                 existing = existing_map.get(symbol)
-
+        
                 if existing:
                     existing.current_price = result["current_price"]
                     existing.pred_1d = result["predictions"]["1D"]["predicted_price"]
@@ -91,42 +94,16 @@ def run_universe_job():
                         pred_7d=result["predictions"]["7D"]["predicted_price"],
                     )
                     db.session.add(new_prediction)
-
+        
+                logging.info(f"SUCCESS: {symbol}")
+                print(f"SUCCESS: {symbol}")
+        
                 count += 1
-
+        
             except Exception as e:
-                logging.error(f"Symbol failed: {symbol} | {e}")
+                logging.error(f"ERROR ON {symbol}: {e}")
+                print(f"ERROR ON {symbol}: {e}")
                 failed_symbols.append(symbol)
-
-        db.session.commit()
-
-        job.status = "SUCCESS"
-        job.total_inserted = count
-        job.failed_count = len(failed_symbols)
-        job.end_time = datetime.now(UTC)
-        job.duration_seconds = (
-            job.end_time - job.start_time
-        ).total_seconds()
-
-        db.session.commit()
-
-        logging.info(
-            f"Universe job completed. Updated: {count}, "
-            f"Failed: {len(failed_symbols)}"
-        )
-
-    except Exception as e:
-        job.status = "FAILED"
-        job.error_message = str(e)
-        job.end_time = datetime.now(UTC)
-        job.duration_seconds = (
-            job.end_time - job.start_time
-        ).total_seconds()
-
-        db.session.commit()
-
-        logging.error(f"Universe job failed completely: {e}")
-        raise
 
 
 if __name__ == "__main__":
