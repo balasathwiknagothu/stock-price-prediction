@@ -25,6 +25,8 @@ def run_universe_job():
         raise Exception(f"CSV file not found at {CSV_PATH}")
 
     df = pd.read_csv(CSV_PATH).head(5)
+    print("CSV COLUMNS:", df.columns)
+    print("CSV HEAD:", df.head())
 
     symbols = [
         s if s.endswith(".NS") else f"{s}.NS"
