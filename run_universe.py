@@ -56,7 +56,7 @@ def run_universe_job():
                     period="1y",
                     interval="1d",
                     progress=False,
-                    threads=False
+                    threads=False,
                     timeout=10
                 )
 
