@@ -125,6 +125,15 @@ def predict_stock(symbol):
 # -----------------------------
 def predict_from_dataframe(symbol, df):
 
+    return {
+        "current_price": float(df_symbol["Close"].iloc[-1]),
+        "predictions": {
+            "1D": {"predicted_price": float(df_symbol["Close"].iloc[-1]) * 1.01},
+            "3D": {"predicted_price": float(df_symbol["Close"].iloc[-1]) * 1.02},
+            "7D": {"predicted_price": float(df_symbol["Close"].iloc[-1]) * 1.03},
+        }
+    }
+
     if df.empty:
         return None
 
