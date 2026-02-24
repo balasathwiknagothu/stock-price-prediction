@@ -152,5 +152,12 @@ def last_job():
     }
 
 
+@app.route("/run-universe")
+def run_universe_job():
+    from run_universe import run_universe
+    run_universe()
+    return {"status": "Universe job completed"}
+
+
 if __name__ == "__main__":
     app.run(debug=True)
