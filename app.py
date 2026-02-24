@@ -155,9 +155,8 @@ def last_job():
 @app.route("/run-universe")
 def run_universe_job():
     from run_universe import run_universe
-    run_universe()
-    return {"status": "Universe job completed"}
-
+    run_universe(limit=20)
+    return {"status": "Universe job completed (20 stocks)"}
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -19,7 +19,7 @@ logging.basicConfig(
 
 def run_universe_job():
 
-    df = pd.read_csv("data/master/stocks_universe.csv")
+    df = pd.read_csv("data/master/stocks_universe.csv").head(20)
 
     symbols = [
         s if s.endswith(".NS") else f"{s}.NS"
