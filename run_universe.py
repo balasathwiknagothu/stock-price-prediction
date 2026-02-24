@@ -61,6 +61,7 @@ def run_universe_job():
                 )
 
                 if df_symbol is None or df_symbol.empty:
+                    print("NO DATA FROM YF:", symbol)
                     logging.warning(f"NO DATA: {symbol}")
                     failed_symbols.append(symbol)
                     continue
@@ -68,6 +69,7 @@ def run_universe_job():
                 result = predict_from_dataframe(symbol, df_symbol)
 
                 if not result:
+                    print("MODEL FAILED:", symbol)
                     logging.warning(f"PREDICTION FAILED: {symbol}")
                     failed_symbols.append(symbol)
                     continue
