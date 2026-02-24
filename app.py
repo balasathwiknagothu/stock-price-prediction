@@ -157,11 +157,17 @@ def last_job():
 
 @app.route("/run-universe")
 def trigger_universe():
+    print("RUN UNIVERSE ROUTE HIT")
+
     try:
         with app.app_context():
             run_universe_job()
+
+        print("UNIVERSE JOB FINISHED")
         return {"status": "Universe job executed"}
+
     except Exception as e:
+        print("UNIVERSE ERROR:", e)
         return {"error": str(e)}, 500
 
 
