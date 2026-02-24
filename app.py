@@ -1,3 +1,4 @@
+from run_universe import run_universe
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -79,16 +80,16 @@ def predict():
 
     try:
         result = predict_stock(symbol)
-    
+
         if not result:
             return jsonify({"status": "failed"})
-    
+
         return jsonify({
             "status": "done",
             "current_price": result["current_price"],
             "predictions": result["predictions"]
         })
-    
+
     except Exception as e:
         print("Prediction error:", e)
         return jsonify({"status": "failed"})
@@ -164,10 +165,12 @@ def last_job():
 
 
 @app.route("/run-universe")
-def run_universe_job():
-    from run_universe import run_universe
-    run_universe(limit=20)
-    return {"status": "Universe job completed (20 stocks)"}
+def trigger_universe():
+    try:
+        run_universe_job()
+        return {"status": "Universe job executed"}
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 if __name__ == "__main__":
     app.run(debug=True)
