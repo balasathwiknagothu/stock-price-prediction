@@ -34,6 +34,8 @@ body{
   max-height:320px;overflow-y:auto;
   background:rgba(10,30,38,.96);
   border-radius:20px;display:none;z-index:10
+  scrollbar-width: thin;
+  scrollbar-color:rgba(124,255,124,0.5) transparent;
 }
 .result{padding:14px 24px;cursor:pointer}
 .result:hover{background:rgba(255,255,255,.1)}
@@ -96,6 +98,25 @@ body{
   0%{transform:rotate(0deg)}
   100%{transform:rotate(360deg)}
 }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(124,255,124,0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124,255,124,0.8);
+}
+
+
 </style>
 </head>
 
@@ -104,9 +125,9 @@ body{
 <div class="header">
   <div class="logo" onclick="goHome()">📈 Stock Analytics</div>
   <div class="nav">
-    <button onclick="scrollToSection('gainers')">🔥 Gainers</button>
-    <button onclick="scrollToSection('losers')">📉 Losers</button>
-    <button onclick="scrollToSection('movers')">⚡ Movers</button>
+    <button onclick="openFullSection('gainers')">🔥 Gainers</button>
+    <button onclick="openFullSection('losers')">📉 Losers</button>
+    <button onclick="openFullSection('movers')">⚡ Movers</button>
   </div>
   <div class="search-wrap">
     <input class="search" id="search" placeholder="Search stocks or symbols…" autocomplete="off">
@@ -142,7 +163,11 @@ const content=document.getElementById("content");
 
 let debounceTimer;
 
-search.addEventListener("focus", () => renderResults(""));
+search.addEventListener("focus", () => {
+  if(search.value.length > 0){
+    renderResults(search.value.toLowerCase());
+  }
+});
 
 search.addEventListener("input", () => {
   clearTimeout(debounceTimer);
@@ -158,7 +183,7 @@ function renderResults(query){
     !query ||
     s.name.toLowerCase().includes(query) ||
     s.symbol.toLowerCase().includes(query)
-  ).slice(0, 50);   // limit results for performance
+  ) //limit removed
 
   if(filtered.length === 0){
     results.innerHTML="<div class='result'>No results found</div>";
@@ -396,9 +421,6 @@ function closeDetail(){
   if(chart){chart.remove();chart=null;}
 }
 
-function scrollToSection(id) {
-    document.getElementById(id).scrollIntoView({ behavior: "smooth" });
-}
 
 function goHome(){location.reload();}
 
