@@ -33,10 +33,8 @@ def run_universe_job():
     print("CSV COLUMNS:", df.columns)
     print("CSV HEAD:", df.head())
 
-    symbols = [
-        s if s.endswith(".NS") else f"{s}.NS"
-        for s in df["Symbol"].tolist()
-    ]
+    print("CSV COLUMNS:", df.columns.tolist())
+    return {"columns": df.columns.tolist()}
 
     print("SYMBOL LIST:", symbols)
 
