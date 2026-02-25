@@ -125,16 +125,7 @@ def predict_stock(symbol):
 # -----------------------------
 def predict_from_dataframe(symbol, df):
 
-    return {
-        "current_price": float(df_symbol["Close"].iloc[-1]),
-        "predictions": {
-            "1D": {"predicted_price": float(df_symbol["Close"].iloc[-1]) * 1.01},
-            "3D": {"predicted_price": float(df_symbol["Close"].iloc[-1]) * 1.02},
-            "7D": {"predicted_price": float(df_symbol["Close"].iloc[-1]) * 1.03},
-        }
-    }
-
-    if df.empty:
+    if df is None or df.empty:
         return None
 
     if isinstance(df.columns, pd.MultiIndex):
@@ -163,20 +154,10 @@ def predict_from_dataframe(symbol, df):
     r7 = model_7d.predict(X_scaled)[0]
 
     return {
-        "symbol": symbol,
         "current_price": current_price,
         "predictions": {
-            "1D": {
-                "expected_return": float(r1),
-                "predicted_price": float(current_price * (1 + r1))
-            },
-            "3D": {
-                "expected_return": float(r3),
-                "predicted_price": float(current_price * (1 + r3))
-            },
-            "7D": {
-                "expected_return": float(r7),
-                "predicted_price": float(current_price * (1 + r7))
-            }
+            "1D": {"predicted_price": float(current_price * (1 + r1))},
+            "3D": {"predicted_price": float(current_price * (1 + r3))},
+            "7D": {"predicted_price": float(current_price * (1 + r7))},
         }
     }
