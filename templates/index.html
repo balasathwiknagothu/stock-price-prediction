@@ -164,9 +164,7 @@ const content=document.getElementById("content");
 let debounceTimer;
 
 search.addEventListener("focus", () => {
-  if(search.value.length > 0){
-    renderResults(search.value.toLowerCase());
-  }
+  renderResults("");
 });
 
 search.addEventListener("input", () => {
@@ -183,7 +181,7 @@ function renderResults(query){
     !query ||
     s.name.toLowerCase().includes(query) ||
     s.symbol.toLowerCase().includes(query)
-  ) //limit removed
+  );
 
   if(filtered.length === 0){
     results.innerHTML="<div class='result'>No results found</div>";
@@ -242,16 +240,7 @@ function renderSection(title,data){
   sec.className="section";
   sec.id = id;
 
-  sec.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3>${title}</h3>
-      <button onclick="openFullSection('${id}')" 
-        style="background:none;border:none;color:#7CFF7C;cursor:pointer;">
-        More →
-      </button>
-    </div>
-    <div class="cards-row"></div>
-  `;
+  sec.innerHTML=`<h3>${title}</h3><div class="cards-row"></div>`;
 
   const row=sec.querySelector(".cards-row");
 
@@ -259,6 +248,18 @@ function renderSection(title,data){
     row.innerHTML="<div>No data</div>";
   }else{
     data.forEach(s=>row.appendChild(stockCard(s)));
+
+    // Add More card at end
+    const moreCard=document.createElement("div");
+    moreCard.className="card";
+    moreCard.style.display="flex";
+    moreCard.style.alignItems="center";
+    moreCard.style.justifyContent="center";
+    moreCard.style.fontWeight="600";
+    moreCard.innerHTML="More →";
+    moreCard.onclick=()=>openFullSection(id);
+
+    row.appendChild(moreCard);
   }
 
   content.appendChild(sec);
