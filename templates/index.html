@@ -104,9 +104,9 @@ body{
 <div class="header">
   <div class="logo" onclick="goHome()">📈 Stock Analytics</div>
   <div class="nav">
-    <button onclick="openList('gainers')">🔥 Gainers</button>
-    <button onclick="openList('losers')">📉 Losers</button>
-    <button onclick="openList('movers')">⚡ Movers</button>
+    <button onclick="scrollToSection('gainers')">🔥 Gainers</button>
+    <button onclick="scrollToSection('losers')">📉 Losers</button>
+    <button onclick="scrollToSection('movers')">⚡ Movers</button>
   </div>
   <div class="search-wrap">
     <input class="search" id="search" placeholder="Search stocks or symbols…" autocomplete="off">
@@ -210,16 +210,57 @@ function loadHome(){
 }
 
 function renderSection(title,data){
+
+  const id = title.toLowerCase();
+
   const sec=document.createElement("div");
   sec.className="section";
-  sec.innerHTML=`<h3>${title}</h3><div class="cards-row"></div>`;
+  sec.id = id;
+
+  sec.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3>${title}</h3>
+      <button onclick="openFullSection('${id}')" 
+        style="background:none;border:none;color:#7CFF7C;cursor:pointer;">
+        More →
+      </button>
+    </div>
+    <div class="cards-row"></div>
+  `;
+
   const row=sec.querySelector(".cards-row");
+
   if(data.length===0){
     row.innerHTML="<div>No data</div>";
   }else{
     data.forEach(s=>row.appendChild(stockCard(s)));
   }
+
   content.appendChild(sec);
+}
+
+
+function openFullSection(kind){
+
+  content.innerHTML = `
+    <div class="section">
+      <h2>${kind.toUpperCase()}</h2>
+      <div class="cards-grid" id="fullGrid"></div>
+    </div>
+  `;
+
+  fetch(`/market/${kind}/top?limit=50`)
+  .then(r => r.json())
+  .then(data => {
+      const grid = document.getElementById("fullGrid");
+
+      if(data.length === 0){
+          grid.innerHTML = "<div>No data</div>";
+          return;
+      }
+
+      data.forEach(s => grid.appendChild(stockCard(s)));
+  });
 }
 
 function openStock(symbol){
@@ -353,6 +394,10 @@ function loadChart(symbol,data){
 function closeDetail(){
   document.getElementById("detail").classList.remove("show");
   if(chart){chart.remove();chart=null;}
+}
+
+function scrollToSection(id) {
+    document.getElementById(id).scrollIntoView({ behavior: "smooth" });
 }
 
 function goHome(){location.reload();}

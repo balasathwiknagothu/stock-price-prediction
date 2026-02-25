@@ -129,8 +129,24 @@ def get_market_data(kind, limit=None):
 
 @app.route("/market/<kind>/top")
 def market_top(kind):
-    rows = get_market_data(kind, limit=5)
+    limit = request.args.get("limit", default=5, type=int)
+    rows = get_market_data(kind, limit=limit)
     return jsonify(rows)
+
+@app.route("/market/gainers")
+def all_gainers():
+    data = get_sorted_predictions("gainers")
+    return jsonify(data)
+
+@app.route("/market/losers")
+def all_losers():
+    data = get_sorted_predictions("losers")
+    return jsonify(data)
+
+@app.route("/market/movers")
+def all_movers():
+    data = get_sorted_predictions("movers")
+    return jsonify(data)
 
 
 @app.route("/health")
