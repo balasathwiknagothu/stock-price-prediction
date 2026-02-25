@@ -25,13 +25,20 @@ def run_universe_job():
         raise Exception(f"CSV file not found at {CSV_PATH}")
 
     df = pd.read_csv(CSV_PATH).head(5)
+
+    print("CSV PATH:", CSV_PATH)
+    print("CSV ROW COUNT:", len(df))
+    print("CSV COLUMNS:", df.columns.tolist())
+
     print("CSV COLUMNS:", df.columns)
     print("CSV HEAD:", df.head())
 
     symbols = [
         s if s.endswith(".NS") else f"{s}.NS"
-        for s in df["symbol"].tolist()
+        for s in df["Symbol"].tolist()
     ]
+
+    print("SYMBOL LIST:", symbols)
 
     job = JobRun(
         start_time=datetime.now(UTC),
@@ -49,6 +56,8 @@ def run_universe_job():
 
         for symbol in symbols:
 
+            print("Processing symbol:", symbol)
+
             logging.info(f"PROCESSING: {symbol}")
             print(f"PROCESSING: {symbol}")
 
@@ -61,6 +70,7 @@ def run_universe_job():
                     threads=False,
                     timeout=10
                 )
+                print("Downloaded rows:", len(df_symbol))
 
                 if df_symbol is None or df_symbol.empty:
                     print("NO DATA FROM YF:", symbol)
