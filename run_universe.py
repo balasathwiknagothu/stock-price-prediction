@@ -24,7 +24,7 @@ def run_universe_job():
     if not os.path.exists(CSV_PATH):
         raise Exception(f"CSV file not found at {CSV_PATH}")
 
-    df = pd.read_csv(CSV_PATH)
+    df = pd.read_csv(CSV_PATH).head(100)
 
     if "symbol" in df.columns:
         column_name = "symbol"
@@ -55,6 +55,7 @@ def run_universe_job():
         existing_map = {row.symbol: row for row in existing_rows}
 
         for symbol in symbols:
+            import time
 
             print("Processing symbol:", symbol)
 
@@ -109,6 +110,9 @@ def run_universe_job():
             except Exception as e:
                 logging.error(f"ERROR ON {symbol}: {e}")
                 failed_symbols.append(symbol)
+
+            
+            time.sleep(0.3)
 
         db.session.commit()
 
