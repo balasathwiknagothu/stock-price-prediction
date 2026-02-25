@@ -24,7 +24,7 @@ def run_universe_job():
     if not os.path.exists(CSV_PATH):
         raise Exception(f"CSV file not found at {CSV_PATH}")
 
-    df = pd.read_csv(CSV_PATH).head(20)
+    df = pd.read_csv(CSV_PATH)
 
     if "symbol" in df.columns:
         column_name = "symbol"
