@@ -133,20 +133,6 @@ def market_top(kind):
     rows = get_market_data(kind, limit=limit)
     return jsonify(rows)
 
-@app.route("/market/gainers")
-def all_gainers():
-    data = get_sorted_predictions("gainers")
-    return jsonify(data)
-
-@app.route("/market/losers")
-def all_losers():
-    data = get_sorted_predictions("losers")
-    return jsonify(data)
-
-@app.route("/market/movers")
-def all_movers():
-    data = get_sorted_predictions("movers")
-    return jsonify(data)
 
 
 @app.route("/health")
