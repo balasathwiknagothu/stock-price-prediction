@@ -26,17 +26,19 @@ def run_universe_job():
 
     df = pd.read_csv(CSV_PATH).head(5)
 
-    print("CSV PATH:", CSV_PATH)
-    print("CSV ROW COUNT:", len(df))
-    print("CSV COLUMNS:", df.columns.tolist())
+    if "symbol" in df.columns:
+        column_name = "symbol"
+    elif "Symbol" in df.columns:
+        column_name = "Symbol"
+    elif "SYMBOL" in df.columns:
+        column_name = "SYMBOL"
+    else:
+        raise Exception(f"No valid symbol column found. Found columns: {df.columns.tolist()}")
 
-    print("CSV COLUMNS:", df.columns)
-    print("CSV HEAD:", df.head())
-
-    print("CSV COLUMNS:", df.columns.tolist())
-    return {"columns": df.columns.tolist()}
-
-    print("SYMBOL LIST:", symbols)
+    symbols = [
+        s if str(s).endswith(".NS") else f"{s}.NS"
+        for s in df[column_name].tolist()
+    ]
 
     job = JobRun(
         start_time=datetime.now(UTC),
